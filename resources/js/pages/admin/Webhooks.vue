@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { dashboard as adminDashboardRoute } from "@/routes/admin";
 import { index as adminWebhooksRoute } from "@/routes/admin/webhooks";
 import type {
     SimplePaginator,
@@ -101,14 +100,6 @@ function formatTime(value: string): string {
     <div class="flex flex-col gap-6">
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
-                <nav class="mb-2 flex gap-1" aria-label="Admin pages">
-                    <Button as-child size="sm" variant="ghost">
-                        <Link :href="adminDashboardRoute()">Report</Link>
-                    </Button>
-                    <Button as-child size="sm" variant="secondary">
-                        <Link :href="adminWebhooksRoute()">Webhooks</Link>
-                    </Button>
-                </nav>
                 <h1 class="text-xl font-semibold tracking-tight">
                     Webhook requests
                 </h1>
