@@ -68,6 +68,7 @@ function toggleRow(id: number) {
 
 const outcomeLabels: Record<WebhookOutcome, string> = {
     processed: "Processed",
+    duplicate: "Duplicate",
     ignored: "Ignored",
     invalid_signature: "Invalid signature",
     invalid_payload: "Invalid payload",
@@ -80,6 +81,7 @@ function outcomeVariant(
     switch (outcome) {
         case "processed":
             return "default";
+        case "duplicate":
         case "ignored":
             return "secondary";
         case "unknown_generation":

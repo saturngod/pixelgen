@@ -80,15 +80,7 @@ class PricingService
      */
     private function pricing(): array
     {
-        if (Cache::has('pixelforge.pricing')) {
-            return Cache::get('pixelforge.pricing');
-        }
-
-        $pricing = $this->fetchPricing();
-
-        Cache::put('pixelforge.pricing', $pricing, now()->addHour());
-
-        return $pricing;
+        return Cache::remember('pixelforge.pricing', now()->addHour(), fn (): array => $this->fetchPricing());
     }
 
     /**
@@ -114,13 +106,16 @@ class PricingService
 
         $pricing = $response->json();
 
+        // Rates must be decimal strings, the same as on a generation, because bcmath cannot read a float.
+        $rate = ['required', 'string', 'regex:/^\\d{1,6}(\\.\\d{1,12})?$/'];
+
         $validator = Validator::make(is_array($pricing) ? $pricing : [], [
             'currency' => ['required', 'string'],
             'rates' => ['required', 'array'],
-            'rates.input_text_tokens' => ['required', 'numeric'],
-            'rates.input_image_tokens' => ['required', 'numeric'],
-            'rates.output_tokens' => ['required', 'numeric'],
-            'rates.reasoning_tokens' => ['required', 'numeric'],
+            'rates.input_text_tokens' => $rate,
+            'rates.input_image_tokens' => $rate,
+            'rates.output_tokens' => $rate,
+            'rates.reasoning_tokens' => $rate,
             'tokens' => ['required', 'array'],
             'tokens.characters_per_text_token' => ['required', 'integer', 'min:1'],
             'tokens.text_token_variance' => ['required', 'numeric', 'between:0,1'],

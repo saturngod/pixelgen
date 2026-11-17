@@ -179,6 +179,7 @@ test('an event delivered twice is recorded once', function () {
     sendSignedWebhook($this, $event)->assertNoContent();
 
     expect(WebhookEvent::query()->count())->toBe(1);
+    expect(WebhookDelivery::query()->orderBy('id')->pluck('outcome')->all())->toBe([WebhookDelivery::Processed, WebhookDelivery::Duplicate]);
     expect($transaction->fresh()->actual_cost)->toBe('0.070715625');
     expect($user->fresh()->balance)->toBe('0.429284375');
     expect($user->balanceEntries()->count())->toBe(1);

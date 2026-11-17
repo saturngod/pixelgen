@@ -102,10 +102,13 @@ class StoreGenerationImage implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Log a copy that failed for good. The generation keeps its status and cost.
+     * Log a copy that failed for good and mark the row, so the sync command does not queue it again.
+     * The generation keeps its status and cost.
      */
     public function failed(?Throwable $exception): void
     {
+        Transaction::query()->whereKey($this->transactionId)->update(['image_failed_at' => now()]);
+
         Log::error('Could not store a generation image.', [
             'transaction_id' => $this->transactionId,
             'error' => $exception?->getMessage(),

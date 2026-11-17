@@ -27,6 +27,7 @@ export type AdminTotals = AdminReportSummary & AdminReconciliation;
 
 export type WebhookOutcome =
     | 'processed'
+    | 'duplicate'
     | 'ignored'
     | 'invalid_signature'
     | 'invalid_payload'

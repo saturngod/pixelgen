@@ -114,3 +114,13 @@ test('removes its upload when the generation was deleted during the copy', funct
     Storage::disk('s3')->assertMissing($transaction->imageStoragePath());
     expect(Transaction::withTrashed()->find($transaction->id)->image_path)->toBeNull();
 });
+
+test('a copy that failed for good is marked on the generation', function () {
+    $transaction = Transaction::factory()->succeeded()->create();
+
+    (new StoreGenerationImage($transaction->id))->failed(new RuntimeException('Could not download the Pixelforge image.'));
+
+    expect($transaction->fresh())
+        ->image_failed_at->not->toBeNull()
+        ->status->toBe(Transaction::Succeeded);
+});

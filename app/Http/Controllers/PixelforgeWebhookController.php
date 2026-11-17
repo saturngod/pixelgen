@@ -36,9 +36,13 @@ class PixelforgeWebhookController extends Controller
             return response('Unknown generation.', 503);
         }
 
-        Transaction::recordGeneration($transaction->id, $generation, ['id' => $event['id'], 'type' => $event['type']]);
+        $isNewEvent = Transaction::recordGeneration($transaction->id, $generation, ['id' => $event['id'], 'type' => $event['type']]);
 
-        WebhookDelivery::recordSigned($request, WebhookDelivery::Processed, ['transaction_id' => $transaction->id]);
+        WebhookDelivery::recordSigned(
+            $request,
+            $isNewEvent ? WebhookDelivery::Processed : WebhookDelivery::Duplicate,
+            ['transaction_id' => $transaction->id],
+        );
 
         return response()->noContent();
     }

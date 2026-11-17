@@ -44,6 +44,7 @@ use Illuminate\Support\Facades\Storage;
  * @property CarbonImmutable|null $image_url_expires_at
  * @property string|null $image_path
  * @property CarbonImmutable|null $image_stored_at
+ * @property CarbonImmutable|null $image_failed_at
  * @property string|null $error_code
  * @property string|null $error_message
  * @property CarbonImmutable|null $started_at
@@ -110,6 +111,7 @@ class Transaction extends Model
             'actual_cost' => 'decimal:9',
             'image_url_expires_at' => 'datetime',
             'image_stored_at' => 'datetime',
+            'image_failed_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'last_synced_at' => 'datetime',
@@ -152,7 +154,21 @@ class Transaction extends Model
     }
 
     /**
+     * Limit to generations that have no answer from Pixelforge yet, because the create call timed out or the request died.
+     *
+     * @param  Builder<Transaction>  $query
+     */
+    public function scopeNeverSubmitted(Builder $query): void
+    {
+        $query->where('status', self::Queued)
+            ->whereNull('pixelforge_id')
+            ->where('created_at', '<=', now()->subSeconds(self::StuckAfterSeconds));
+    }
+
+    /**
      * Limit to succeeded generations whose image copy is missing while the Pixelforge URL may still work.
+     *
+     * A copy that already failed for good is left out, so it is not queued again every minute.
      *
      * @param  Builder<Transaction>  $query
      */
@@ -160,6 +176,7 @@ class Transaction extends Model
     {
         $query->where('status', self::Succeeded)
             ->whereNull('image_path')
+            ->whereNull('image_failed_at')
             ->where('completed_at', '<=', now()->subMinutes(5))
             ->where('completed_at', '>=', now()->subDay());
     }
@@ -230,19 +247,36 @@ class Transaction extends Model
 
     /**
      * Mark the generation as failed before Pixelforge accepted it. It costs nothing.
+     *
+     * The row is locked and read again first. A webhook can arrive before the create call returns,
+     * so a row Pixelforge has already answered for is left alone and its hold is not returned twice.
+     *
+     * Returns false, and changes nothing, when the row is no longer waiting to be submitted.
      */
-    public function markSubmissionFailed(string $errorCode, string $errorMessage): void
+    public function markSubmissionFailed(string $errorCode, string $errorMessage): bool
     {
-        DB::transaction(function () use ($errorCode, $errorMessage): void {
-            $this->status = self::Failed;
-            $this->error_code = $errorCode;
-            $this->error_message = $errorMessage;
-            $this->provider_cost = '0';
-            $this->actual_cost = '0';
-            $this->completed_at = now();
-            $this->settleBalance('0');
-            $this->save();
+        $isMarked = DB::transaction(function () use ($errorCode, $errorMessage): bool {
+            $transaction = self::withTrashed()->lockForUpdate()->find($this->id);
+
+            if ($transaction === null || $transaction->status !== self::Queued || $transaction->pixelforge_id !== null) {
+                return false;
+            }
+
+            $transaction->status = self::Failed;
+            $transaction->error_code = $errorCode;
+            $transaction->error_message = $errorMessage;
+            $transaction->provider_cost = '0';
+            $transaction->actual_cost = '0';
+            $transaction->completed_at = now();
+            $transaction->settleBalance('0');
+            $transaction->save();
+
+            return true;
         });
+
+        $this->refresh();
+
+        return $isMarked;
     }
 
     /**
@@ -251,12 +285,14 @@ class Transaction extends Model
      * When an event id is given, the event is recorded in the same transaction and a repeat is ignored.
      * The image copy is queued only when this call moved the row to succeeded.
      *
+     * Returns false when the event was already recorded, so nothing was applied.
+     *
      * @param  array<string, mixed>  $generation
      * @param  array{id: string, type: string}|null  $event
      */
-    public static function recordGeneration(string $transactionId, array $generation, ?array $event = null): void
+    public static function recordGeneration(string $transactionId, array $generation, ?array $event = null): bool
     {
-        $hasJustSucceeded = DB::transaction(function () use ($transactionId, $generation, $event): bool {
+        $hasJustSucceeded = DB::transaction(function () use ($transactionId, $generation, $event): ?bool {
             // A deleted row still records its webhook events, so Pixelforge is not asked to retry them.
             $transaction = self::withTrashed()->lockForUpdate()->find($transactionId);
 
@@ -266,7 +302,7 @@ class Transaction extends Model
 
             if ($event !== null) {
                 if (WebhookEvent::query()->where('event_id', $event['id'])->exists()) {
-                    return false;
+                    return null;
                 }
 
                 WebhookEvent::query()->create([
@@ -282,6 +318,34 @@ class Transaction extends Model
         if ($hasJustSucceeded && self::query()->whereKey($transactionId)->exists()) {
             StoreGenerationImage::dispatch($transactionId);
         }
+
+        return $hasJustSucceeded !== null;
+    }
+
+    /**
+     * Submit a generation whose first submission has no known result, for example after a timeout or a crash.
+     *
+     * The transaction id is the idempotency key, so Pixelforge returns the generation it already has instead of making a second one.
+     * A clear refusal fails the row and returns the hold. With no answer, the row is tried again until it is too old to count as active.
+     */
+    public function resubmit(PixelforgeService $pixelforge): void
+    {
+        try {
+            $generation = $pixelforge->createGeneration($this);
+        } catch (PixelforgeRequestException $exception) {
+            $hasGivenUp = $this->created_at->lte(now()->subMinutes(self::ActiveWindowMinutes));
+
+            if ($exception->status !== null || $hasGivenUp) {
+                $this->markSubmissionFailed(
+                    $exception->status === null ? self::SubmissionFailed : $exception->errorCode,
+                    $exception->getMessage(),
+                );
+            }
+
+            return;
+        }
+
+        self::recordGeneration($this->id, $generation);
     }
 
     /**

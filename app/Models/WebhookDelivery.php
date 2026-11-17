@@ -38,6 +38,11 @@ class WebhookDelivery extends Model
     public const string Processed = 'processed';
 
     /**
+     * The event was already handled, so this delivery changed nothing.
+     */
+    public const string Duplicate = 'duplicate';
+
+    /**
      * The event type is not one we act on.
      */
     public const string Ignored = 'ignored';
@@ -64,6 +69,7 @@ class WebhookDelivery extends Model
      */
     public const array Outcomes = [
         self::Processed,
+        self::Duplicate,
         self::Ignored,
         self::InvalidSignature,
         self::InvalidPayload,

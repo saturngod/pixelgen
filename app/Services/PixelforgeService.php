@@ -18,6 +18,11 @@ use Throwable;
 class PixelforgeService
 {
     /**
+     * Longest wait before a retry.
+     */
+    private const int MaxRetryDelaySeconds = 5;
+
+    /**
      * Submit a generation. The transaction id is the idempotency key, so a retry never creates a second paid generation.
      *
      * @return array<string, mixed>
@@ -161,7 +166,7 @@ class PixelforgeService
             ->timeout(15)
             ->retry(
                 2,
-                1000,
+                fn (int $attempt, Throwable $exception): int => $this->retryDelayMilliseconds($exception),
                 fn (Throwable $exception): bool => $exception instanceof ConnectionException
                     || ($exception instanceof RequestException && $exception->response->status() === 503),
                 throw: false,
@@ -185,6 +190,16 @@ class PixelforgeService
         }
 
         return $response;
+    }
+
+    /**
+     * Wait as long as Pixelforge asks in Retry-After, but never long enough to hold up a web request.
+     */
+    private function retryDelayMilliseconds(Throwable $exception): int
+    {
+        $retryAfter = $exception instanceof RequestException ? $exception->response->header('Retry-After') : null;
+
+        return is_numeric($retryAfter) ? min(max((int) $retryAfter, 1), self::MaxRetryDelaySeconds) * 1000 : 1000;
     }
 
     /**

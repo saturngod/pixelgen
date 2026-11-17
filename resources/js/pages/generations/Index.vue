@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useHttp } from '@inertiajs/vue3';
+import { Head, Link, router, useHttp } from '@inertiajs/vue3';
 import { ImagePlus } from '@lucide/vue';
 import { useDocumentVisibility } from '@vueuse/core';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -57,11 +57,30 @@ function pendingIds(): string[] {
     return items.value.filter(needsUpdate).map((generation) => generation.id);
 }
 
+function isFinished(generation: Generation): boolean {
+    return generation.status === 'succeeded' || generation.status === 'failed';
+}
+
 function replace(updated: Generation[]): void {
+    const hasJustFinished = updated.some((generation) => {
+        const previous = items.value.find((item) => item.id === generation.id);
+
+        return (
+            previous !== undefined &&
+            !isFinished(previous) &&
+            isFinished(generation)
+        );
+    });
+
     items.value = items.value.map(
         (item) =>
             updated.find((generation) => generation.id === item.id) ?? item,
     );
+
+    if (hasJustFinished) {
+        // The hold was settled, so refresh the balance shown in the header.
+        router.reload({ only: ['auth'] });
+    }
 }
 
 /**

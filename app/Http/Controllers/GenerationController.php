@@ -139,12 +139,15 @@ class GenerationController extends Controller
                 'status' => $exception->status,
             ]);
 
-            $transaction->markSubmissionFailed(
-                $exception->status === null ? Transaction::SubmissionFailed : $exception->errorCode,
-                $exception->getMessage(),
-            );
+            // With an HTTP answer, Pixelforge refused the generation. A webhook that got here first still wins.
+            if ($exception->status !== null && $transaction->markSubmissionFailed($exception->errorCode, $exception->getMessage())) {
+                return back()->withErrors(['generation' => $this->submissionErrorMessage($exception)]);
+            }
 
-            return back()->withErrors(['generation' => $this->submissionErrorMessage($exception)]);
+            // With no answer, Pixelforge may have accepted it. The row stays queued with its hold, and the sync command submits it again with the same idempotency key.
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Your image is on its way.']);
+
+            return to_route('generations.index');
         }
 
         Transaction::recordGeneration($transaction->id, $generation);

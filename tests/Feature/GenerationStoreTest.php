@@ -1,10 +1,12 @@
 <?php
 
+use App\Jobs\StoreGenerationImage;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Sleep;
 
 beforeEach(function () {
@@ -178,7 +180,7 @@ test('retries an overloaded Pixelforge and then gives up cleanly', function () {
     expect($user->transactions()->sole()->status)->toBe(Transaction::Failed);
 });
 
-test('a connection failure is saved as a submission failure', function () {
+test('a connection failure keeps the generation queued with its hold', function () {
     Sleep::fake();
     Http::preventStrayRequests();
     Http::fake([
@@ -189,11 +191,39 @@ test('a connection failure is saved as a submission failure', function () {
 
     $response = $this->actingAs($user)->post(route('generations.store'), generationPayload());
 
-    $response->assertSessionHasErrors(['generation' => 'Image generation is unavailable right now. Please try again shortly.']);
+    // Pixelforge may have accepted it, so the row and its hold are kept for the sync command to submit again.
+    $response->assertSessionHasNoErrors()->assertRedirect(route('generations.index'));
     expect($user->transactions()->sole())
-        ->status->toBe(Transaction::Failed)
-        ->error_code->toBe(Transaction::SubmissionFailed)
+        ->status->toBe(Transaction::Queued)
+        ->held_amount->toBe('0.100000000')
         ->pixelforge_id->toBeNull();
+});
+
+test('a webhook that settles the generation before the create call fails is not refunded twice', function () {
+    Sleep::fake();
+    Queue::fake([StoreGenerationImage::class]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'pixelforge.test/v1/pricing' => Http::response(pixelforgePricing()),
+        'pixelforge.test/v1/generations' => function () {
+            // Pixelforge accepted the generation and its webhook was handled, but the response never reached us.
+            $transaction = Transaction::query()->sole();
+            Transaction::recordGeneration($transaction->id, succeededGeneration('gen_01JC2Z9B7K2M4P6R8T0V3X5Z7A'));
+
+            throw new ConnectionException('Connection timed out');
+        },
+    ]);
+    $user = User::factory()->withBalance('1.00')->create();
+
+    $this->actingAs($user)->post(route('generations.store'), generationPayload())
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('generations.index'));
+
+    expect($user->transactions()->sole())
+        ->status->toBe(Transaction::Succeeded)
+        ->actual_cost->toBe('0.070715625')
+        ->held_amount->toBe('0.000000000');
+    expect($user->fresh()->balance)->toBe('0.929284375');
 });
 
 test('does not save a generation when pricing is unavailable', function () {
