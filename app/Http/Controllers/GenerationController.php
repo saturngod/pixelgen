@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -189,6 +190,22 @@ class GenerationController extends Controller
         return response()->json([
             'generations' => $transactions->map(fn (Transaction $transaction): array => $transaction->toClientArray())->values(),
         ]);
+    }
+
+    /**
+     * Send the user to a short-lived S3 link that saves the image as a file instead of opening it.
+     */
+    public function download(Request $request, string $transaction): RedirectResponse
+    {
+        $transaction = $request->user()->transactions()->findOrFail($transaction);
+
+        abort_if($transaction->image_path === null, 404);
+
+        return redirect()->away(Storage::disk('s3')->temporaryUrl(
+            $transaction->image_path,
+            now()->addMinutes(5),
+            ['ResponseContentDisposition' => "attachment; filename=\"pixelgen-{$transaction->id}.png\""],
+        ));
     }
 
     /**

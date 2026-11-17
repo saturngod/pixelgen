@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { router, useHttp } from '@inertiajs/vue3';
-import { ImageOff, LoaderCircle, Trash2, TriangleAlert } from '@lucide/vue';
+import {
+    Download,
+    ImageOff,
+    LoaderCircle,
+    Trash2,
+    TriangleAlert,
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +21,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { destroy, show } from '@/routes/generations';
+import { destroy, download, show } from '@/routes/generations';
 import type { Generation } from '@/types';
 
 /**
@@ -260,6 +266,17 @@ onBeforeUnmount(() => {
                     <span class="text-xs text-muted-foreground">
                         {{ createdAtLabel }}
                     </span>
+                    <Button
+                        v-if="current.image_url && !imageFailed"
+                        as="a"
+                        :href="download.url(current.id)"
+                        variant="ghost"
+                        size="icon"
+                        class="size-7 text-muted-foreground hover:text-foreground"
+                        aria-label="Download image"
+                    >
+                        <Download class="size-4" />
+                    </Button>
                     <Dialog v-if="isDeletable">
                         <DialogTrigger as-child>
                             <Button

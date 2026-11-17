@@ -40,6 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:120,1')
         ->name('generations.show');
 
+    Route::get('generations/{transaction}/download', [GenerationController::class, 'download'])
+        ->middleware('throttle:60,1')
+        ->name('generations.download');
+
     Route::delete('generations/{transaction}', [GenerationController::class, 'destroy'])
         ->middleware('throttle:60,1')
         ->name('generations.destroy');
