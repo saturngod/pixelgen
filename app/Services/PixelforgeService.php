@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 /**
- * Wraps the Pixelforge generations API.
+ * Wraps the Pixelforge generations and usage API.
  */
 class PixelforgeService
 {
@@ -56,6 +56,43 @@ class PixelforgeService
         $response = $this->send(fn (PendingRequest $request) => $request->get('generations/'.rawurlencode($pixelforgeId)));
 
         return $this->generationFrom($response);
+    }
+
+    /**
+     * Get what Pixelforge billed this API key for each UTC day in the range, both ends included.
+     *
+     * @return array{data: array<int, array{date: string, generations: int, cost_usd: string}>, total: array{generations: int, cost_usd: string}}
+     *
+     * @throws PixelforgeRequestException
+     */
+    public function usage(string $startDate, string $endDate): array
+    {
+        $response = $this->send(fn (PendingRequest $request) => $request->get('usage', [
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]));
+
+        $usage = $response->json();
+        $amount = ['required', 'string', 'regex:/^\d{1,9}\.\d{9}$/'];
+
+        $validator = Validator::make(is_array($usage) ? $usage : [], [
+            'data' => ['present', 'array'],
+            'data.*.date' => ['required', 'date_format:Y-m-d'],
+            'data.*.generations' => ['required', 'integer', 'min:0'],
+            'data.*.cost_usd' => $amount,
+            'total' => ['required', 'array'],
+            'total.generations' => ['required', 'integer', 'min:0'],
+            'total.cost_usd' => $amount,
+        ]);
+
+        if ($validator->fails()) {
+            throw new PixelforgeRequestException(
+                'Pixelforge usage response has an unexpected shape: '.implode(' ', $validator->errors()->keys()),
+                'invalid_response',
+            );
+        }
+
+        return $usage;
     }
 
     /**

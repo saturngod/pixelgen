@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
-import { CreditCard, LogOut, Settings } from '@lucide/vue';
-import { computed } from 'vue';
-import AppLogo from '@/components/AppLogo.vue';
-import UserInfo from '@/components/UserInfo.vue';
-import { Button } from '@/components/ui/button';
+import { Link, usePage } from "@inertiajs/vue3";
+import { ChartColumn, CreditCard, LogOut, Settings } from "@lucide/vue";
+import { computed } from "vue";
+import AppLogo from "@/components/AppLogo.vue";
+import UserInfo from "@/components/UserInfo.vue";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,17 +12,18 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Toaster } from '@/components/ui/sonner';
-import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { formatBalance } from '@/lib/utils';
-import { getInitials } from '@/composables/useInitials';
-import { home, login, logout, register } from '@/routes';
-import { index as billingRoute } from '@/routes/billing';
-import { index as historyRoute } from '@/routes/generations';
-import { edit as editProfile } from '@/routes/profile';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { router } from '@inertiajs/vue3';
+} from "@/components/ui/dropdown-menu";
+import { Toaster } from "@/components/ui/sonner";
+import { useCurrentUrl } from "@/composables/useCurrentUrl";
+import { formatBalance } from "@/lib/utils";
+import { getInitials } from "@/composables/useInitials";
+import { home, login, logout, register } from "@/routes";
+import { dashboard as adminDashboardRoute } from "@/routes/admin";
+import { index as billingRoute } from "@/routes/billing";
+import { index as historyRoute } from "@/routes/generations";
+import { edit as editProfile } from "@/routes/profile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { router } from "@inertiajs/vue3";
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -132,6 +133,18 @@ function handleLogout(): void {
                                 >
                                     <Settings class="mr-2 h-4 w-4" />
                                     Settings
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                v-if="user.is_admin"
+                                :as-child="true"
+                            >
+                                <Link
+                                    class="block w-full cursor-pointer"
+                                    :href="adminDashboardRoute()"
+                                >
+                                    <ChartColumn class="mr-2 h-4 w-4" />
+                                    Admin report
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
