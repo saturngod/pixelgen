@@ -12,12 +12,15 @@ export function toUrl(href: NonNullable<InertiaLinkProps['href']>) {
 }
 
 /**
- * Show a balance in dollars with two decimals, cut off rather than rounded so it never looks higher than it is.
+ * Show a balance in dollars, such as "$5.00" or "$0.2415".
+ *
+ * Keeps up to four decimals so it adds up with the image charges, and cuts off rather than rounds so it never looks higher than it is.
  */
 export function formatBalance(balance: string): string {
     const [whole, fraction = ''] = balance.split('.');
+    const decimals = fraction.slice(0, 4).replace(/0+$/, '').padEnd(2, '0');
 
-    return `$${whole}.${fraction.padEnd(2, '0').slice(0, 2)}`;
+    return `$${whole}.${decimals}`;
 }
 
 /**

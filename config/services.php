@@ -33,7 +33,7 @@ return [
         'api_key' => env('PIXELFORGE_API'),
         'webhook_secret' => env('WEBHOOK_SECRET'),
         'markup_margin' => env('MARKUP_MARGIN', '25'),
-        'signup_credit' => env('SIGNUP_CREDIT', '0.50'),
+        'signup_credit' => env('SIGNUP_CREDIT', '1.00'),
     ],
 
     'slack' => [
