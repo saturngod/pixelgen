@@ -24,3 +24,22 @@ export type AdminDayRow = AdminReportSummary &
     };
 
 export type AdminTotals = AdminReportSummary & AdminReconciliation;
+
+export type WebhookOutcome =
+    | 'processed'
+    | 'ignored'
+    | 'invalid_signature'
+    | 'invalid_payload'
+    | 'unknown_generation';
+
+export type WebhookDeliveryRow = {
+    id: number;
+    outcome: WebhookOutcome;
+    reason: string | null;
+    event_id: string | null;
+    type: string | null;
+    transaction_id: string | null;
+    ip: string | null;
+    payload: Record<string, unknown> | null;
+    created_at: string;
+};

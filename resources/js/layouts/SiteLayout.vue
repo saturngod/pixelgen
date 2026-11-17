@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Link, usePage } from "@inertiajs/vue3";
-import { ChartColumn, CreditCard, LogOut, Settings } from "@lucide/vue";
+import {
+    ChartColumn,
+    CreditCard,
+    LogOut,
+    Settings,
+    Webhook,
+} from "@lucide/vue";
 import { computed } from "vue";
 import AppLogo from "@/components/AppLogo.vue";
 import UserInfo from "@/components/UserInfo.vue";
@@ -19,6 +25,7 @@ import { formatBalance } from "@/lib/utils";
 import { getInitials } from "@/composables/useInitials";
 import { home, login, logout, register } from "@/routes";
 import { dashboard as adminDashboardRoute } from "@/routes/admin";
+import { index as adminWebhooksRoute } from "@/routes/admin/webhooks";
 import { index as billingRoute } from "@/routes/billing";
 import { index as historyRoute } from "@/routes/generations";
 import { edit as editProfile } from "@/routes/profile";
@@ -145,6 +152,18 @@ function handleLogout(): void {
                                 >
                                     <ChartColumn class="mr-2 h-4 w-4" />
                                     Admin report
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                v-if="user.is_admin"
+                                :as-child="true"
+                            >
+                                <Link
+                                    class="block w-full cursor-pointer"
+                                    :href="adminWebhooksRoute()"
+                                >
+                                    <Webhook class="mr-2 h-4 w-4" />
+                                    Webhook requests
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

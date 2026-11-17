@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminWebhookDeliveryController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\GenerationController;
 use App\Http\Controllers\PixelforgeWebhookController;
@@ -23,6 +24,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin-dashboard', [AdminDashboardController::class, 'index'])
         ->middleware(['can:viewAdminDashboard', 'throttle:30,1'])
         ->name('admin.dashboard');
+
+    Route::get('admin-dashboard/webhooks', [AdminWebhookDeliveryController::class, 'index'])
+        ->middleware(['can:viewAdminDashboard', 'throttle:30,1'])
+        ->name('admin.webhooks.index');
 
     Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
 

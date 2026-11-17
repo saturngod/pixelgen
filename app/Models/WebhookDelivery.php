@@ -58,6 +58,19 @@ class WebhookDelivery extends Model
     public const string UnknownGeneration = 'unknown_generation';
 
     /**
+     * Every outcome a delivery can have.
+     *
+     * @var array<int, string>
+     */
+    public const array Outcomes = [
+        self::Processed,
+        self::Ignored,
+        self::InvalidSignature,
+        self::InvalidPayload,
+        self::UnknownGeneration,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

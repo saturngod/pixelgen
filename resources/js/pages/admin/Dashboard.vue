@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from "@inertiajs/vue3";
+import { Head, Link, useForm } from "@inertiajs/vue3";
 import { ChevronDown, ChevronRight, TriangleAlert } from "@lucide/vue";
 import { ref } from "vue";
 import InputError from "@/components/InputError.vue";
@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { dashboard as adminDashboardRoute } from "@/routes/admin";
+import { index as adminWebhooksRoute } from "@/routes/admin/webhooks";
 import type { AdminDayRow, AdminTotals, AdminUserRow } from "@/types";
 
 const props = defineProps<{
@@ -108,6 +109,14 @@ const summaryCards = [
     <div class="flex flex-col gap-6">
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
+                <nav class="mb-2 flex gap-1" aria-label="Admin pages">
+                    <Button as-child size="sm" variant="secondary">
+                        <Link :href="adminDashboardRoute()">Report</Link>
+                    </Button>
+                    <Button as-child size="sm" variant="ghost">
+                        <Link :href="adminWebhooksRoute()">Webhooks</Link>
+                    </Button>
+                </nav>
                 <h1 class="text-xl font-semibold tracking-tight">
                     Admin report
                 </h1>
