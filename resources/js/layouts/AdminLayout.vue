@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from "@inertiajs/vue3";
-import { ArrowLeft, ChartColumn, Webhook } from "@lucide/vue";
+import { ChartColumn, Webhook } from "@lucide/vue";
 import AppLogo from "@/components/AppLogo.vue";
 import NavUser from "@/components/NavUser.vue";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { useCurrentUrl } from "@/composables/useCurrentUrl";
-import { home } from "@/routes";
 import { dashboard as adminDashboardRoute } from "@/routes/admin";
 import { index as adminWebhooksRoute } from "@/routes/admin/webhooks";
 
@@ -74,16 +73,6 @@ const navItems = [
             </SidebarContent>
 
             <SidebarFooter>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton as-child tooltip="Back to site">
-                            <Link :href="home()">
-                                <ArrowLeft />
-                                <span>Back to site</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
