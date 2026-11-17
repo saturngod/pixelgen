@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { formatBalance } from '@/lib/utils';
 import { home, login, register } from '@/routes';
+import { index as billingRoute } from '@/routes/billing';
 import {
     estimate as estimateRoute,
     index as historyRoute,
@@ -460,8 +461,15 @@ function submit(): void {
                             class="flex w-full gap-2 text-sm text-destructive"
                         >
                             <TriangleAlert class="mt-px size-4 shrink-0" />
-                            Your balance is too low for this image. Try a
-                            smaller size or lower quality.
+                            <span>
+                                Your balance is too low for this image. Try a
+                                smaller size or lower quality, or
+                                <Link
+                                    :href="billingRoute()"
+                                    class="font-medium underline underline-offset-4"
+                                    >buy credits</Link
+                                >.
+                            </span>
                         </p>
                         <Button
                             type="submit"

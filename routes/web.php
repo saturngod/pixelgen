@@ -21,6 +21,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
 
+    Route::post('billing/top-ups', [BillingController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('billing.store');
+
     Route::get('generations', [GenerationController::class, 'index'])->name('generations.index');
 
     Route::post('generations', [GenerationController::class, 'store'])

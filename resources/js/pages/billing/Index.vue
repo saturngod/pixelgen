@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Gift, ImageIcon, Wallet } from '@lucide/vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Gift, ImageIcon, Plus, Wallet } from '@lucide/vue';
 import { computed } from 'vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -11,7 +12,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { formatAmount, formatBalance } from '@/lib/utils';
-import { index as billingRoute } from '@/routes/billing';
+import { index as billingRoute, store as buyCreditsRoute } from '@/routes/billing';
 import type { BalanceEntry, BillingFilter, SimplePaginator } from '@/types';
 
 const props = defineProps<{
@@ -19,7 +20,15 @@ const props = defineProps<{
     heldAmount: string;
     type: BillingFilter | null;
     entries: SimplePaginator<BalanceEntry>;
+    creditPacks: string[];
 }>();
+
+const buyCreditsForm = useForm({ amount: '' });
+
+function buyCredits(amount: string) {
+    buyCreditsForm.amount = amount;
+    buyCreditsForm.post(buyCreditsRoute.url(), { preserveScroll: true });
+}
 
 const filters: { value: BillingFilter | null; label: string }[] = [
     { value: null, label: 'All' },
@@ -76,11 +85,33 @@ function entryIcon(entry: BalanceEntry) {
                     {{ formatBalance(balance) }}
                 </CardTitle>
             </CardHeader>
-            <CardContent v-if="hasHeldAmount">
-                <p class="text-sm text-muted-foreground tabular-nums">
+            <CardContent class="flex flex-col gap-4">
+                <p
+                    v-if="hasHeldAmount"
+                    class="text-sm text-muted-foreground tabular-nums"
+                >
                     {{ formatBalance(heldAmount) }} is on hold for images in
                     progress. You get back whatever they don't use.
                 </p>
+                <div class="flex flex-col gap-2">
+                    <p class="text-sm font-medium">Buy credits</p>
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            v-for="pack in creditPacks"
+                            :key="pack"
+                            variant="outline"
+                            :disabled="buyCreditsForm.processing"
+                            @click="buyCredits(pack)"
+                        >
+                            <Plus />
+                            ${{ pack }}
+                        </Button>
+                    </div>
+                    <InputError :message="buyCreditsForm.errors.amount" />
+                    <p class="text-xs text-muted-foreground">
+                        Test purchase. No payment is taken.
+                    </p>
+                </div>
             </CardContent>
         </Card>
 

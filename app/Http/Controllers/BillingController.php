@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BillingIndexRequest;
+use App\Http\Requests\BillingStoreRequest;
 use App\Models\BalanceEntry;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,6 +34,21 @@ class BillingController extends Controller
             'heldAmount' => $user->heldAmount(),
             'type' => $type,
             'entries' => $entries,
+            'creditPacks' => BillingStoreRequest::CreditPacks,
         ]);
+    }
+
+    /**
+     * Buy a credit pack. This is a test purchase: no payment is taken.
+     */
+    public function store(BillingStoreRequest $request): RedirectResponse
+    {
+        $amount = $request->validated('amount');
+
+        $request->user()->addCredit(BalanceEntry::TopUp, $amount, 'Credit pack (test purchase, no payment taken)');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Added \${$amount} in credits."]);
+
+        return back();
     }
 }
